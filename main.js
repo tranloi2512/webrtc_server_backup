@@ -4,6 +4,31 @@
 const socket = io('https://webrtcbk.herokuapp.com/');
 
 $('#div-chat').hide();
+
+///
+///     Deply TURN Server via Ajax
+///
+let customConfig;
+
+$.ajax({
+  url: "https://service.xirsys.com/ice",
+  data: {
+    ident: "tranloi2512",
+    secret: "1504b54e-a2d9-11e7-b628-1c12c2a160ac",
+    domain: "tranloi2512.github.io",
+    application: "default",
+    room: "default",
+    secure: 1
+  },
+  success: function (data, status) {
+    // data.d is where the iceServers object lives
+    customConfig = data.d;
+    console.log(customConfig);
+  },
+  async: false
+});
+
+
 ///
 ///     Get Online User List From Socket.io Server
 ///
@@ -39,7 +64,8 @@ var peer = new Peer({
     key: 'peerjs', 
     host: 'peerjsbk.herokuapp.com', 
     secure: true, 
-    port: 443, 
+    port: 443,
+    config: customConfig
     });
 peer.on('open', id => {
     $('#my-peer').append(id);
@@ -84,7 +110,7 @@ peer.on('call', call => {
 ///		Get Media Stream
 ///
 function openStream(){
-	const config = {audio:true,video:true};
+	const config = {audio:false,video:true};
 	return navigator.mediaDevices.getUserMedia(config);
 }
 
