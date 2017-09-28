@@ -8,9 +8,9 @@ $('#div-chat').hide();
 ///
 ///     Deply TURN Server via Ajax
 ///
-let customConfig;
+var customConfig;
 $.ajax({
-  url: "https://global.xirsys.net/_turn",
+  url: "https://global.xirsys.net/ice",
   data: {
     ident: "tranloi2512",
     secret: "1504b54e-a2d9-11e7-b628-1c12c2a160ac",
