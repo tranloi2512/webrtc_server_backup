@@ -9,20 +9,17 @@ $('#div-chat').hide();
 ///     Deply TURN Server via Ajax
 ///
 let customConfig;
-
 $.ajax({
-  url: "https://service.xirsys.com/ice",
+  url: "https://global.xirsys.net/_turn",
   data: {
     ident: "tranloi2512",
     secret: "1504b54e-a2d9-11e7-b628-1c12c2a160ac",
-    domain: "tranloi2512.github.io",
-    application: "default",
-    room: "default",
+    channel: "tranloi2512.github.io",
     secure: 1
   },
   success: function (data, status) {
-    // data.d is where the iceServers object lives
-    customConfig = data.d;
+    // data.v is where the iceServers object lives
+    customConfig = data.v;
     console.log(customConfig);
   },
   async: false
