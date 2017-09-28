@@ -36,10 +36,10 @@ socket.on('ASSIGN_FAIL',() =>{
 ///		Creat Peerjs Connect
 ///
 var peer = new Peer({
-    key: 'peerjs',
-    host: 'peerjsbk.herokuapp.com/',
-    secure: true,
-    port: 443
+    key: 'peerjs', 
+    host: 'peerjsbk.herokuapp.com', 
+    secure: true, 
+    port: 443, 
     });
 peer.on('open', id => {
     $('#my-peer').append(id);
