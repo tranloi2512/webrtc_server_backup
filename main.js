@@ -8,7 +8,7 @@ $('#div-chat').hide();
 ///
 ///     Deply TURN Server via Ajax
 ///
-var customConfig;
+let customConfig;
 $.ajax({
   url: "https://global.xirsys.net/ice",
   data: {
@@ -72,6 +72,136 @@ peer.on('open', id => {
     });
 });
 
+// Await connections from others
+peer.on('connection', connect);
+peer.on('error', function(err) {
+console.log(err);
+})
+
+///
+///     Handler Connection Object
+///
+function connect(c) {
+  // Handle a chat connection.
+  if (c.label === 'chat') { 
+  console.log('C label = chat');
+    var chatbox = $('<div></div>').addClass('connection').addClass('active').attr('id', c.peer);
+    var header = $('<h1></h1>').html('Chat with <strong>' + c.peer + '</strong>');
+    var messages = $('<div><em>Peer connected.</em></div>').addClass('messages');
+    chatbox.append(header);
+    chatbox.append(messages);
+    console.log("Message to send is: "+messages);
+ 
+    // Select connection handler.
+    chatbox.on('click', function() {
+    console.log('chatbox click event');
+      if ($(this).attr('class').indexOf('active') === -1) {
+        $(this).addClass('active');
+      } else {
+        $(this).removeClass('active');
+      }
+    });
+    $('.filler').hide();
+    $('#connections').append(chatbox);
+    c.on('data', function(data) {
+      messages.append('<div><span class="peer">' + c.peer + '</span>: ' + data +
+        '</div>');
+        });
+        c.on('close', function() {
+          alert(c.peer + ' has left the chat.');
+          chatbox.remove();
+          if ($('.connection').length === 0) {
+            $('.filler').show();
+          }
+          delete connectedPeers[c.peer];
+        });
+  } 
+  connectedPeers[c.peer] = 1;
+}
+
+
+///
+///     Hander Text - Chatting Event
+///
+var connectedPeers = {};
+
+$(document).ready(function() {
+
+  function doNothing(e){
+    e.preventDefault();
+    e.stopPropagation();
+  }
+  // Connect to a peer
+  $('#connect').click(function() {      //Button Connect Click event
+   // var requestedPeer = $('#rid').val();
+    var requestedPeer = remoteID;
+    console.log('Remote ID is:'+requestedPeer);
+    if (!connectedPeers[requestedPeer]) {
+      // Create 2 connections, one labelled chat and another labelled file.
+      var c = peer.connect(requestedPeer, {
+        label: 'chat',
+        serialization: 'none',
+        metadata: {message: 'hi i want to chat with you!'}
+      });
+      c.on('open', function() {
+        connect(c);
+      });
+      c.on('error', function(err) { alert(err); });
+    
+    }
+    connectedPeers[requestedPeer] = 1;
+  });
+  // Close a connection.
+  $('#close').click(function() {        // Close Connect Event
+    eachActiveConnection(function(c) {
+      c.close();
+    });
+  });
+  // Send a chat message to all active connections.
+  $('#send').submit(function(e) {       //Send Message to Remote Peer 
+    e.preventDefault();
+    // For each active connection, send the message.
+    var msg = $('#text').val();
+    console.log('<< Send event >> Message to send is: '+msg);
+    eachActiveConnection(function(c, $c) {
+      if (c.label === 'chat') {
+        c.send(msg);
+        $c.find('.messages').append('<div><span class="you">You: </span>' + msg
+          + '</div>');
+      }
+    });
+    $('#text').val('');
+    $('#text').focus();
+  });
+  // Goes through each active peer and calls FN on its connections.
+  function eachActiveConnection(fn) {
+    var actives = $('.active');
+    var checkedIds = {};
+    actives.each(function() {
+      var peerId = $(this).attr('id');
+      if (!checkedIds[peerId]) {
+        var conns = peer.connections[peerId];
+        for (var i = 0, ii = conns.length; i < ii; i += 1) {
+          var conn = conns[i];
+          fn(conn, $(this));
+        }
+      }
+      checkedIds[peerId] = 1;
+    });
+  }
+  
+});
+
+
+///
+///     Window Closing Handler
+///
+window.onunload = window.onbeforeunload = function(e) {
+  if (!!peer && !peer.destroyed) {
+    peer.destroy();
+  }
+};
+
 
 ///
 ///		Caller Event Handler
@@ -126,8 +256,11 @@ function playStream(idVideoTag,stream){
 ///
 ///     Call-On-Click Handler
 ///
+var remoteID;
+
 $('#ulUser').on('click','li',function() {
     const id =$(this).attr('id');
+    remoteID=id;
     openStream()
     .then(stream => {
         playStream('localStream', stream);
