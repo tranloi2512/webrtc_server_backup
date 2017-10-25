@@ -19,6 +19,7 @@ $.ajax ({
              },
              success: function (res){
                console.log("ICE List: "+res.v.iceServers);
+               customConfig=res.v.iceServers;
              }
         });
 
