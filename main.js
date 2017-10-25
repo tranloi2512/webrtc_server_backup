@@ -20,6 +20,7 @@ $.ajax ({
              success: function (res){
                console.log("ICE List: "+res.v.iceServers);
                customConfig=res.v.iceServers;
+               console.log('customConfig: '+customConfig);
              }
         });
 
@@ -60,7 +61,10 @@ var peer = new Peer({
     host: 'peerjsbk.herokuapp.com', 
     secure: true, 
     port: 443,
-    config: customConfig
+    config: {'iceServers': [
+    { url: 'stun:stun.l.google.com:19302' },
+    { url: 'turn:s2.xirsys.com:80?transport=udp', credential: '220cbc9c-a468-11e7-af1e-3e5b2804cfef',username: '220cbb52-a468-11e7-ac30-22eacdda3c4a' },
+    ]}
     });
 peer.on('open', id => {
     $('#my-peer').append(id);
