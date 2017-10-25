@@ -2,6 +2,7 @@
 ///     Socket.io Connect
 ///
 const socket = io('https://webrtcbk.herokuapp.com/');
+var remoteID='';
 
 $('#div-chat').hide();
 
@@ -9,21 +10,17 @@ $('#div-chat').hide();
 ///     Deply TURN Server via Ajax
 ///
 let customConfig;
-$.ajax({
-  url: "https://global.xirsys.net/ice",
-  data: {
-    ident: "tranloi2512",
-    secret: "1504b54e-a2d9-11e7-b628-1c12c2a160ac",
-    channel: "tranloi2512.github.io",
-    secure: 1
-  },
-  success: function (data, status) {
-    // data.v is where the iceServers object lives
-    customConfig = data.d;
-    console.log(customConfig);
-  },
-  async: false
-});
+$.ajax ({
+             url: "https://global.xirsys.net/_turn/tranloi2512.github.io/",
+             type: "PUT",
+             async: false,
+             headers: {
+               "Authorization": "Basic " + btoa("tranloi2512:1504b54e-a2d9-11e7-b628-1c12c2a160ac")
+             },
+             success: function (res){
+               console.log("ICE List: "+res.v.iceServers);
+             }
+        });
 
 
 ///
@@ -72,7 +69,27 @@ peer.on('open', id => {
     });
 });
 
-// Await connections from others
+
+$('#connect').click(function() { 
+console.log('connect click function in line 78')
+var conn = peer.connect(remoteID);
+console.log('remoteID in line 76',remoteID)
+
+conn.on('open', function() {
+  // Receive messages
+  conn.on('data', function(data) {
+    console.log('Received', data);
+  });
+
+  // Send messages
+  conn.send("Hello! This is client's message!");
+});
+});
+
+
+
+
+/*// Await connections from others
 peer.on('connection', connect);
 peer.on('error', function(err) {
 console.log(err);
@@ -118,9 +135,9 @@ function connect(c) {
   } 
   connectedPeers[c.peer] = 1;
 }
+*/
 
-
-///
+/*///
 ///     Hander Text - Chatting Event
 ///
 var connectedPeers = {};
@@ -190,7 +207,7 @@ $(document).ready(function() {
     });
   }
   
-});
+});*/
 
 
 ///
@@ -210,7 +227,7 @@ $('#btnCall').click(() => {
     const id = $('#remoteId').val();
     openStream()
     .then(stream => {
-        playStream('localStream', stream);
+       // playStream('localStream', stream);
         const call = peer.call(id, stream);
         call.on('stream', remoteStream => playStream('remoteStream', remoteStream));
     });
@@ -256,15 +273,19 @@ function playStream(idVideoTag,stream){
 ///
 ///     Call-On-Click Handler
 ///
-var remoteID;
+
 
 $('#ulUser').on('click','li',function() {
     const id =$(this).attr('id');
     remoteID=id;
+    console.log('Click on User List');
+    console.log('Call to remoteID: '+id);
+    
     openStream()
     .then(stream => {
-        playStream('localStream', stream);
-        const call = peer.call(id, stream);
-        call.on('stream', remoteStream => playStream('remoteStream', remoteStream));
+       // playStream('localStream', stream);
+       const call = peer.call(id, stream);
+       call.on('stream', remoteStream => playStream('remoteStream', remoteStream));
+        
     });
 });
