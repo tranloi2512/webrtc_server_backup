@@ -2,7 +2,6 @@
 ///     Socket.io Connect
 ///
 const socket = io('https://webrtcbk.herokuapp.com/');
-var remoteID='';
 
 $('#div-chat').hide();
 
@@ -18,9 +17,9 @@ $.ajax ({
                "Authorization": "Basic " + btoa("tranloi2512:1504b54e-a2d9-11e7-b628-1c12c2a160ac")
              },
              success: function (res){
-               console.log("ICE List: "+res.v.iceServers);
+              // console.log("ICE List: "+res.v.iceServers);
                customConfig=res.v.iceServers;
-               console.log('customConfig: '+customConfig);
+               //console.log('ICE server from customConfig'+customConfig);
              }
         });
 
@@ -57,13 +56,13 @@ socket.on('ASSIGN_FAIL',() =>{
 ///		Creat Peerjs Connect
 ///
 var peer = new Peer({
-    key: 'peerjs', 
-    host: 'peerjsbk.herokuapp.com', 
-    secure: true, 
-    port: 443,
-    config: customConfig
-    });
-peer.on('open', id => {
+       key: 'peerjs', 
+       host: 'peerjsbk.herokuapp.com', 
+       secure: true, 
+       port: 443,
+       config: customConfig
+       });
+    peer.on('open', id => {
     $('#my-peer').append(id);
     $('#btnSignUp').click(() => {
         const username = $('#txtUsername').val();
@@ -71,145 +70,39 @@ peer.on('open', id => {
     });
 });
 
-
-$('#connect').click(function() { 
-console.log('connect click function in line 78')
-var conn = peer.connect(remoteID);
-console.log('remoteID in line 76',remoteID)
-
-conn.on('open', function() {
+var stream_flag=false;
+peer.on('connection', function(conn) {
   // Receive messages
-  conn.on('data', function(data) {
-    console.log('Received', data);
-  });
-
-  // Send messages
-  conn.send("Hello! This is client's message!");
-});
-});
-
-
-
-
-/*// Await connections from others
-peer.on('connection', connect);
-peer.on('error', function(err) {
-console.log(err);
-})
-
-///
-///     Handler Connection Object
-///
-function connect(c) {
-  // Handle a chat connection.
-  if (c.label === 'chat') { 
-  console.log('C label = chat');
-    var chatbox = $('<div></div>').addClass('connection').addClass('active').attr('id', c.peer);
-    var header = $('<h1></h1>').html('Chat with <strong>' + c.peer + '</strong>');
-    var messages = $('<div><em>Peer connected.</em></div>').addClass('messages');
-    chatbox.append(header);
-    chatbox.append(messages);
-    console.log("Message to send is: "+messages);
- 
-    // Select connection handler.
-    chatbox.on('click', function() {
-    console.log('chatbox click event');
-      if ($(this).attr('class').indexOf('active') === -1) {
-        $(this).addClass('active');
-      } else {
-        $(this).removeClass('active');
-      }
+      conn.on('data', function(data) {
+      console.log('Received: ', data);
+      if (stream_flag==false)
+      {
+        const id = data;
+        console.log('start server streaming to id ...'+id);        
+        stream_flag = true;
+        console.log('flag'+stream_flag);
+        openStream()
+          .then(stream => {
+          //  playStream('localStream', stream);
+          const call = peer.call(id, stream);
+          // call.on('stream', remoteStream => playStream('remoteStream', remoteStream));
     });
-    $('.filler').hide();
-    $('#connections').append(chatbox);
-    c.on('data', function(data) {
-      messages.append('<div><span class="peer">' + c.peer + '</span>: ' + data +
-        '</div>');
-        });
-        c.on('close', function() {
-          alert(c.peer + ' has left the chat.');
-          chatbox.remove();
-          if ($('.connection').length === 0) {
-            $('.filler').show();
-          }
-          delete connectedPeers[c.peer];
-        });
-  } 
-  connectedPeers[c.peer] = 1;
-}
-*/
 
-/*///
-///     Hander Text - Chatting Event
-///
-var connectedPeers = {};
+        
+    }; //end of if
+      
+     /* 
+      switch (data) {
+        case '#start':
+        console.log('start streaming');
+        const id =$(this).attr('id');
+        console.log('caller id:' +id);
+        break;
+      }; //emd of switch*/
+     }); //end of data receive event
+}); //end of connection event
 
-$(document).ready(function() {
 
-  function doNothing(e){
-    e.preventDefault();
-    e.stopPropagation();
-  }
-  // Connect to a peer
-  $('#connect').click(function() {      //Button Connect Click event
-   // var requestedPeer = $('#rid').val();
-    var requestedPeer = remoteID;
-    console.log('Remote ID is:'+requestedPeer);
-    if (!connectedPeers[requestedPeer]) {
-      // Create 2 connections, one labelled chat and another labelled file.
-      var c = peer.connect(requestedPeer, {
-        label: 'chat',
-        serialization: 'none',
-        metadata: {message: 'hi i want to chat with you!'}
-      });
-      c.on('open', function() {
-        connect(c);
-      });
-      c.on('error', function(err) { alert(err); });
-    
-    }
-    connectedPeers[requestedPeer] = 1;
-  });
-  // Close a connection.
-  $('#close').click(function() {        // Close Connect Event
-    eachActiveConnection(function(c) {
-      c.close();
-    });
-  });
-  // Send a chat message to all active connections.
-  $('#send').submit(function(e) {       //Send Message to Remote Peer 
-    e.preventDefault();
-    // For each active connection, send the message.
-    var msg = $('#text').val();
-    console.log('<< Send event >> Message to send is: '+msg);
-    eachActiveConnection(function(c, $c) {
-      if (c.label === 'chat') {
-        c.send(msg);
-        $c.find('.messages').append('<div><span class="you">You: </span>' + msg
-          + '</div>');
-      }
-    });
-    $('#text').val('');
-    $('#text').focus();
-  });
-  // Goes through each active peer and calls FN on its connections.
-  function eachActiveConnection(fn) {
-    var actives = $('.active');
-    var checkedIds = {};
-    actives.each(function() {
-      var peerId = $(this).attr('id');
-      if (!checkedIds[peerId]) {
-        var conns = peer.connections[peerId];
-        for (var i = 0, ii = conns.length; i < ii; i += 1) {
-          var conn = conns[i];
-          fn(conn, $(this));
-        }
-      }
-      checkedIds[peerId] = 1;
-    });
-  }
-  
-});*/
 
 
 ///
@@ -229,7 +122,7 @@ $('#btnCall').click(() => {
     const id = $('#remoteId').val();
     openStream()
     .then(stream => {
-       // playStream('localStream', stream);
+        playStream('localStream', stream);
         const call = peer.call(id, stream);
         call.on('stream', remoteStream => playStream('remoteStream', remoteStream));
     });
@@ -239,10 +132,12 @@ $('#btnCall').click(() => {
 ///		Callee Event Handler
 ///
 peer.on('call', call => {
+    console.log('Received Call Request...Start Streaming')
     openStream()
     .then(stream => {
         call.answer(stream);
-        playStream('localStream', stream);
+       // playStream('localStream', stream);  //Dont display local stream on server side
+
         call.on('stream', remoteStream => playStream('remoteStream', remoteStream));
     });
 });
@@ -269,25 +164,20 @@ function playStream(idVideoTag,stream){
 	video.play();
 }
 
-/*openStream()
-.then(stream => playStream('localStream',stream));*/
+
 
 ///
 ///     Call-On-Click Handler
 ///
-
+var remoteID;
 
 $('#ulUser').on('click','li',function() {
     const id =$(this).attr('id');
     remoteID=id;
-    console.log('Click on User List');
-    console.log('Call to remoteID: '+id);
-    
     openStream()
     .then(stream => {
-       // playStream('localStream', stream);
-       const call = peer.call(id, stream);
-       call.on('stream', remoteStream => playStream('remoteStream', remoteStream));
-        
+      //  playStream('localStream', stream);
+        const call = peer.call(id, stream);
+        call.on('stream', remoteStream => playStream('remoteStream', remoteStream));
     });
 });
