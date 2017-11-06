@@ -6,6 +6,8 @@ const socket = io('https://webrtcbk.herokuapp.com/');
 var speed, turn, target_speed, target_turn;
 var control_speed = 0; 
 var control_turn = 0;
+var count = 0;
+var key_count = 0;
 
 $('#div-chat').hide();
 
@@ -75,6 +77,8 @@ var peer = new Peer({
 });
 
 var stream_flag=false;
+var oldSpeed = 0;
+var oldTurn = 0;
 peer.on('connection', function(conn) {
   // Receive messages
       conn.on('data', function(data) {
@@ -85,29 +89,49 @@ peer.on('connection', function(conn) {
         console.log('start server streaming to id ...'+id);        
         stream_flag = true;
         console.log('flag'+stream_flag);
-        openStream()
+       // init_ros();
+        /*openStream()
           .then(stream => {
           //  playStream('localStream', stream);
           const call = peer.call(id, stream);
           // call.on('stream', remoteStream => playStream('remoteStream', remoteStream));
-    });
+    });*/
 
         
     } //end of if
       
      else {
+        key_count++;
 
-      speed = Number(document.getElementById('linearXText').value);
+        if (true){
+          console.log("count:"+count);
+
+          if (key_count === 100) {
+            key_count =0;
+            console.log("RECONNECT ROSLIB NOW");
+           // rbServer.close();
+            /*rbServer = new ROSLIB.Ros({
+            url : 'ws://localhost:9090'
+             });*/
+           /* rbServer = new ROSLIB.Ros({
+                   url : 'ws://localhost:9090'
+           }); // end of ROSLIB reconnect*/
+          };
+         // count = 0;
+         oldKey = data;
+          speed = Number(document.getElementById('linearXText').value);
       turn = Number(document.getElementById('angularZText').value)
       switch (data) {
         case 73:  //forward
         //console.log('move forward');  
+        console.log("forward");
         target_speed = speed;
         target_turn = 0;
+        count++;
         break;
         
         case 188: //backward
-       // console.log('move backward');
+        console.log('move backward');
         target_speed = -speed;
         target_turn = 0;
         break;
@@ -125,6 +149,7 @@ peer.on('connection', function(conn) {
         break;
 
         case 75: //stop
+        console.log("stop");
         target_speed = 0;
         target_turn = 0;
         break;
@@ -134,8 +159,9 @@ peer.on('connection', function(conn) {
           console.log('out of desired key '+data)
         }; //end of default
       }; //emd of switch
-      console.log('max'+Math.max(5,3));
-      if (target_speed > control_speed)
+    //  console.log('max'+Math.max(5,3));
+      for (count = 0;count <=10; count++){
+          if (target_speed > control_speed)
                 control_speed = Math.min( target_speed, control_speed + 0.02 );
             else if (target_speed < control_speed)
                 control_speed = Math.max( target_speed, control_speed - 0.02 );
@@ -149,24 +175,75 @@ peer.on('connection', function(conn) {
             else
                 control_turn = target_turn;
 
-        twist.linear.x = control_speed;
-        twist.angular.z = control_turn;
+            if (/*(oldSpeed !== control_speed)||(oldTurn !== control_turn)*/ true){
+            var twist = new ROSLIB.Message({
+                 linear : {
+                 x : control_speed,
+                 y : 0.0,
+                 z : 0.0
+                },
+                angular : {
+                x : 0.0,
+                y : 0.0,
+                z : control_turn
+                }
+            });
 
+            cmdVelTopic.publish(twist);
+            oldTurn = control_turn;
+            oldSpeed = control_speed;
+
+          }; //end of different speed check
+
+        /*twist.linear.x = control_speed;
+        twist.angular.z = control_turn;
+*/
         // Publish the message 
-        cmdVelTopic.publish(twist);
+        
       //  console.log('target_speed = '+target_speed);
       // console.log('target_turn = '+target_turn);
+      };//end of for loop
 
 
     };  //end of else
+        }
+      
      }); //end of data receive event
 }); //end of connection event
+
+
+
+//================================================================================================
+///
+///     use nodejs
+///
+// This function connects to the rosbridge server running on the local computer on port 9090
+
+/*var SerialPort = require('serialport');
+var port = new SerialPort('~/dev/ttyACM0', {
+  baudRate: 115200
+});
+*/
+
+
+
+
+
+
+
+
+
+
+
 
 //================================================================================================
 ///
 ///     Use ROSLIB for publishing cmd/Twist topic
 ///
 // This function connects to the rosbridge server running on the local computer on port 9090
+
+
+
 
 
 var rbServer = new ROSLIB.Ros({
@@ -203,18 +280,8 @@ var cmdVelTopic = new ROSLIB.Topic({
 
 // These lines create a message that conforms to the structure of the Twist defined in our ROS installation
 // It initalizes all properties to zero. They will be set to appropriate values before we publish this message.
-var twist = new ROSLIB.Message({
-    linear : {
-        x : 0.0,
-        y : 0.0,
-        z : 0.0
-    },
-    angular : {
-        x : 0.0,
-        y : 0.0,
-        z : 0.0
-    }
-});
+
+
 
 
 //================================================================================================

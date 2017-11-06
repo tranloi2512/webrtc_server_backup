@@ -3,23 +3,73 @@
     <head>
        
         <title>WebRTC</title>
-         <meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
-        <meta http-equiv="Content-Language" content="en-us">
+        <!--  <meta http-equiv="Content-Type" content="text/html; charset=utf-8"> 
+        <meta http-equiv="Content-Language" content="en-us"> -->
+        <meta charset="UTF-8">
+
+        <link rel="stylesheet" type="text/css"
+         href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" />
         
         <!--   <link href="fancy.css" rel="stylesheet" type="text/css"> -->
-        <script type="text/javascript" src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+        <script type="text/javascript" src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></cript>
         <script type="text/javascript" src="http://cdn.robotwebtools.org/roslibjs/current/roslib.min.js"></script>
-       
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.0/jquery.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.23/jquery-ui.min.js"></script>
+
+        <script src="http://cdn.robotwebtools.org/EventEmitter2/current/eventemitter2.min.js"></script>
+
+        <script src="roslib.js"></script>    
+	<script src="keyboardteleop.js"></script>        
         <script src="jquery.js"></script>
         <script src="peer.js"></script>
         <script src="socket.io.js"></script>
+        <script>
+              /**
+               * Setup all GUI elements when the page is loaded. 
+               */
 
-       
+              var teleop_topic = '/cmd_vel_mux/input/teleop'
+
+              var init_flag = false
+
+              function submit_values(){
+             
+                   init_flag = true;
+                   init();}
+
+              function init() {
+              
+                if(init_flag == true)
+                {
+                // Connecting to ROS.
+                var ros = new ROSLIB.Ros({
+                  url : 'ws://localhost:9090'
+                });
+
+
+                // Initialize the teleop.
+                var teleop = new KEYBOARDTELEOP.Teleop({
+                  ros : ros,
+                  topic : '/cmd_vel_mux/input/teleop',
+                
+                });
+
+                teleop.scale = 0.18;                 
+
+                // Set the initial speed .
+                $('#speed-label').html('Speed: ' + teleop.scale + 'm/s');
+               
+
+                init_flag = false;
+              }
+              }
+
+            </script>    
         
         
  
     </head>
-    <body>
+    <body onload="init()">
         <h1>Telepresence Robot Server</h1>
         <div id="div-chat">
             <p>Online user:</p>
@@ -48,6 +98,13 @@
         <button id="sendMsg" type="button" onclick="pubMessage()">Publish Message</button>
     </form>
     <div id="feedback"></div>
+    <form >
+          Teleop topic:<br>
+        <input type="text" name="Teleop Topic" id='tele_topic' value="/cmd_vel_mux/input/teleop"><br>
+        <input type="button" onmousedown="submit_values()" value="Submit"> 
+    </form> 
+    <div id="speed-label"></div>
+
     </body>
     <script src="main.js"></script>
 </html>
